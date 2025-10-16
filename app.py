@@ -23,11 +23,12 @@ DOWNLOADS_DIR.mkdir(exist_ok=True)
 def get_driver():
     """Initialize Chrome driver with appropriate options"""
     chrome_options = Options()
-    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--headless=new')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--window-size=1920,1080')
+    chrome_options.add_argument('--disable-blink-features=AutomationControlled')
     
     # Set download directory
     prefs = {
@@ -36,6 +37,8 @@ def get_driver():
         "plugins.always_open_pdf_externally": True
     }
     chrome_options.add_experimental_option("prefs", prefs)
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
     
     driver = webdriver.Chrome(options=chrome_options)
     return driver
@@ -48,6 +51,7 @@ def index():
 @app.route('/api/states', methods=['GET'])
 def get_states():
     """Fetch list of states from eCourts"""
+    driver = None
     try:
         driver = get_driver()
         driver.get(ECOURTS_URL)
@@ -68,15 +72,22 @@ def get_states():
                     'text': option.text.strip()
                 })
         
-        driver.quit()
         return jsonify({'success': True, 'states': states})
     
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    
+    finally:
+        if driver:
+            try:
+                driver.quit()
+            except:
+                pass
 
 @app.route('/api/districts', methods=['POST'])
 def get_districts():
     """Fetch list of districts for a given state"""
+    driver = None
     try:
         data = request.json
         state_code = data.get('state_code')
@@ -111,15 +122,22 @@ def get_districts():
                     'text': option.text.strip()
                 })
         
-        driver.quit()
         return jsonify({'success': True, 'districts': districts})
     
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    
+    finally:
+        if driver:
+            try:
+                driver.quit()
+            except:
+                pass
 
 @app.route('/api/court-complexes', methods=['POST'])
 def get_court_complexes():
     """Fetch list of court complexes for a given state and district"""
+    driver = None
     try:
         data = request.json
         state_code = data.get('state_code')
@@ -163,15 +181,22 @@ def get_court_complexes():
                     'text': option.text.strip()
                 })
         
-        driver.quit()
         return jsonify({'success': True, 'court_complexes': court_complexes})
     
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    
+    finally:
+        if driver:
+            try:
+                driver.quit()
+            except:
+                pass
 
 @app.route('/api/courts', methods=['POST'])
 def get_courts():
     """Fetch list of courts for a given state, district, and court complex"""
+    driver = None
     try:
         data = request.json
         state_code = data.get('state_code')
@@ -222,15 +247,22 @@ def get_courts():
                     'text': option.text.strip()
                 })
         
-        driver.quit()
         return jsonify({'success': True, 'courts': courts})
     
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    
+    finally:
+        if driver:
+            try:
+                driver.quit()
+            except:
+                pass
 
 @app.route('/api/get-captcha-image', methods=['POST'])
 def get_captcha_image():
     """Fetch captcha image for manual entry"""
+    driver = None
     try:
         data = request.json
         state_code = data.get('state_code')
@@ -270,8 +302,6 @@ def get_captcha_image():
         # Get session cookies
         cookies = driver.get_cookies()
         
-        driver.quit()
-        
         return jsonify({
             'success': True,
             'captcha_url': captcha_url,
@@ -280,6 +310,13 @@ def get_captcha_image():
     
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    
+    finally:
+        if driver:
+            try:
+                driver.quit()
+            except:
+                pass
 
 @app.route('/api/download-cause-list', methods=['POST'])
 def download_cause_list():
